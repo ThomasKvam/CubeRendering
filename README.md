@@ -1,2 +1,2 @@
-# Cube Rendering
-# using GLFW and GLEW
+## Cube Rendering
+### using GLFW and GLEW
