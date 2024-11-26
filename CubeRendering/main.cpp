@@ -1,5 +1,5 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include <GL\glew.h>
+#include <GLFW\glfw3.h>
 #include <iostream>
 
 
@@ -9,7 +9,7 @@ int main() {
 
 
 	//window specs / create window object
-	GLFWwindow* window = glfwCreateWindow(800, 800, "YouTube Tutorial", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(800, 800, "Cube Render", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Faild to create Window" << std::endl;
 		glfwTerminate();
@@ -21,7 +21,7 @@ int main() {
 
 
 
-	//triangle endpoints
+	//Square endpoints
 	float verticies[] = {
 		//x   y    z
 		-0.5f, 0.5f, 0.0f, //top left corner
