@@ -2,22 +2,10 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-/*
-#define SCREEN_WIDTH 620
-#define SCREEN_HEIGHT 480
-*/
 
 int main() {
 	//Inittialize GLFW
 	glfwInit();
-
-	/*
-	//Tell GLFW what version of OpenGL we are using
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	//Tell GLFW to use CORE profile, meaning only modern functions
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	*/
 
 
 	//window specs / create window object
@@ -30,13 +18,6 @@ int main() {
 	//introduce window into the current context
 	glfwMakeContextCurrent(window);
 	glViewport(0, 0, 800, 800);
-
-	/*
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT, 0, 1);
-	glMatrixMode(GL_MODELVIEW);
-	*/
 
 
 
@@ -62,7 +43,8 @@ int main() {
 
 		// (xyz=3, datatype, stride/gap?, array) 
 		glVertexPointer(3, GL_FLOAT, 0, verticies);
-		//(shape type, startingpoint, numer of points)
+
+		//(Type of shape, startingpoint, numer of points)
 		glDrawArrays(GL_QUADS, 0, 4);
 
 		glDisableClientState(GL_VERTEX_ARRAY);
