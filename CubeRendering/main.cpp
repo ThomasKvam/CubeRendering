@@ -7,11 +7,12 @@ using namespace std;
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 
-void keyCallback( GLFWwindow* window, int key, int scancode, int action, int mods );
 void DrawCube( GLfloat centerPosX, GLfloat centerPosY, GLfloat centerPosZ, GLfloat edgeLength );
 
 GLfloat rotationX = 0.0f;
 GLfloat rotationY = 0.0f;
+
+
 
 int main() {
 	//Inittialize GLFW
@@ -21,7 +22,6 @@ int main() {
 	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Cube Render", NULL, NULL);
 
 
-	glfwSetKeyCallback(window, keyCallback);
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, 1);
 
 	int screenWidth;
@@ -45,8 +45,21 @@ int main() {
 	GLfloat halfScreenWidth = SCREEN_WIDTH / 2;
 	GLfloat halfScreenHeight = SCREEN_HEIGHT / 2;
 
+	//Timing variable
+	double lastTime = glfwGetTime();
+
 	//run window
 	while (!glfwWindowShouldClose(window)) {
+		//calculate elapsed time
+		double currTime = glfwGetTime();
+		double deltaTime = currTime - lastTime;
+		lastTime = currTime;
+
+		//Update rotation angles
+		const GLfloat rotationSpeed = 80.0f; //degrees per second
+		rotationX += rotationSpeed * deltaTime;
+		rotationY += rotationSpeed * deltaTime * 2;
+
 
 		//Change color of the window
 		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
@@ -59,7 +72,8 @@ int main() {
 		glRotatef(rotationY, 0, 1, 0);
 		glTranslatef(-halfScreenWidth, -halfScreenHeight, 500);
 
-		DrawCube(halfScreenWidth, halfScreenHeight, -500, 200);
+		DrawCube(halfScreenWidth, halfScreenHeight,-500, 100);
+
 
 		glPopMatrix();
 		//Swap front and back buffers
@@ -119,38 +133,58 @@ void DrawCube(GLfloat centerPosX, GLfloat centerPosY, GLfloat centerPosZ, GLfloa
 		centerPosX + halfSideLength, centerPosY - halfSideLength, centerPosZ - halfSideLength, //bottom right
 		centerPosX + halfSideLength, centerPosY - halfSideLength, centerPosZ + halfSideLength, //bottom left
 	};
+
+	//Creating Color array for each side of the cube
+	GLfloat colors[] = {
+		// Front face (red)
+		1.0f, 0.0f, 0.0f, // Top left
+		1.0f, 0.0f, 0.0f, // Top right
+		1.0f, 0.0f, 0.0f, // Bottom right
+		1.0f, 0.0f, 0.0f, // Bottom left
+
+		// Back face (green)
+		0.0f, 1.0f, 0.0f, // Top left
+		0.0f, 1.0f, 0.0f, // Top right
+		0.0f, 1.0f, 0.0f, // Bottom right
+		0.0f, 1.0f, 0.0f, // Bottom left
+
+		// Left face (blue)
+		0.0f, 0.0f, 1.0f, // Top left
+		0.0f, 0.0f, 1.0f, // Top right
+		0.0f, 0.0f, 1.0f, // Bottom right
+		0.0f, 0.0f, 1.0f, // Bottom left
+
+		// Right face (yellow)
+		1.0f, 1.0f, 0.0f, // Top left
+		1.0f, 1.0f, 0.0f, // Top right
+		1.0f, 1.0f, 0.0f, // Bottom right
+		1.0f, 1.0f, 0.0f, // Bottom left
+
+		// Top face (cyan)
+		0.0f, 1.0f, 1.0f, // Top left
+		0.0f, 1.0f, 1.0f, // Top right
+		0.0f, 1.0f, 1.0f, // Bottom right
+		0.0f, 1.0f, 1.0f, // Bottom left
+
+		// Bottom face (magenta)
+		1.0f, 0.0f, 1.0f, // Top left
+		1.0f, 0.0f, 1.0f, // Top right
+		1.0f, 0.0f, 1.0f, // Bottom right
+		1.0f, 0.0f, 1.0f, // Bottom left
+	};
+
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	//Render squares
 	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
 
 	// (xyz=3, datatype, stride/gap?, array) 
 	glVertexPointer(3, GL_FLOAT, 0, verticies);
+	glColorPointer(3, GL_FLOAT, 0, colors);
 
 	//(Type of shape, startingpoint, numer of points)
 	glDrawArrays(GL_QUADS, 0, 24);
 
+	glDisableClientState(GL_COLOR_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
-};
-
-
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	const GLfloat rotationSpeed = 10;
-
-	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-		switch (key) {
-		case GLFW_KEY_UP:
-			rotationX -= rotationSpeed;
-			break;
-		case GLFW_KEY_DOWN:
-			rotationX += rotationSpeed;
-			break;
-		case GLFW_KEY_RIGHT:
-			rotationY += rotationSpeed;
-			break;
-		case GLFW_KEY_LEFT:
-			rotationY -= rotationSpeed;
-			break;
-		}
-
-	}
 };
