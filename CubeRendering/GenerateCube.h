@@ -11,8 +11,9 @@
 // This declares a function named 'createCube' that returns an unsigned int
 // and takes no parameters. The definition of this function is in the corresponding 
 // .cpp file (GenerateCube.cpp).
-unsigned int createCube(void);
+unsigned int createCubeVertices(void);
 
+unsigned int createCubeIndices(void);
 
 // End of the include guard. This ensures the contents of this header file are included 
 // only once per compilation unit, even if it's included in multiple source files.

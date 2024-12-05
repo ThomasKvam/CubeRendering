@@ -32,7 +32,9 @@ int main() {
     cout << glGetString(GL_VERSION) << endl;
 
     // Call create cube function
-    createCube();
+    createCubeVertices();
+    createCubeIndices();
+
 
     // Load and compile shaders
     ShaderProgramSource source = ParseShader("Resources/shaders/Basic.shader");
@@ -46,7 +48,8 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Drawing a Cube using triangles with 36 different points
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawElements(GL_TRIANGLES, 12 * 3, GL_UNSIGNED_INT, nullptr);
 
         // Swap buffers
         glfwSwapBuffers(window);
