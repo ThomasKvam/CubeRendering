@@ -6,18 +6,23 @@
 #include <string>
 #include <sstream>
 
-#define ASSERT(x) if (!(x))
+#define ASSERT(x) if (!(x)) __debugbreak();
+#define GLCall(x) GLClearError();\
+    x;\
+    ASSERT(GLLogCall(#x, __FILE__, __LINE__))
 
 static void GLClearError()
 {
     while (glGetError() != GL_NO_ERROR);
 }
 
-static bool GLLogCall()
+static bool GLLogCall(const char* function, const char* file, int line)
 {
     while (GLenum error = glGetError())
     {
-        std::cout << "[OpenGL Error] (" << error << ")" << std::endl;
+        std::cout << "[OpenGL Error] (" << error << "): " << function <<
+            " " << file << ":" << line << std::endl;
+
         return false;
     }
     return true;
@@ -28,6 +33,8 @@ struct ShaderProgramSource
     std::string VertexSource;
     std::string FragmentSource;
 };
+
+
 
 static ShaderProgramSource ParseShader(const std::string& filepath)
 {
@@ -122,6 +129,8 @@ int main(void)
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
+    glfwSwapInterval(1);
+
     if (glewInit() != GLEW_OK)
         std::cout << "ERROR!" << std::endl;
 
@@ -140,7 +149,7 @@ int main(void)
     unsigned int buffer;
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float), positions, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float), positions, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
@@ -153,20 +162,33 @@ int main(void)
 
     ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
 
-    std::cout << source.VertexSource;
-
     unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
     glUseProgram(shader);
+
+    GLCall(int location = glGetUniformLocation(shader, "u_Color"));
+    ASSERT(location != -1);
+    GLCall(glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f));
+
+    float r = 0.0f;
+    float increment = 0.01f;
+
+    float g = 0.5f;
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         /* Render here */
-        glClear(GL_COLOR_BUFFER_BIT);
+        GLCall(glClear(GL_COLOR_BUFFER_BIT));
         
-        GLClearError();
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-        GLLogCall();
+        GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
+        GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+
+        if (r > 1.0f)
+            increment = -0.01;
+        else if (r < 0.0f)
+            increment = 0.01f;
+
+        r += increment;
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
