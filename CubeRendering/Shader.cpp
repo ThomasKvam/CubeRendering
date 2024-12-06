@@ -1,11 +1,8 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <iostream>
+#include <ErrorHandling.cpp>
 #include <fstream>
 #include <string>
 #include <sstream>
 
-using namespace std;
 
 //Struct to hold the Vertex and Frangment shader sources
 struct ShaderProgramSource {
@@ -56,24 +53,24 @@ static unsigned int CompileShader(unsigned int type, const string& source) {
 	const char* src = source.c_str();
 
 	// Provide the shader source code to OpenGL
-	glShaderSource(id, 1, &src, nullptr);
-	glCompileShader(id);
+	GLCall(glShaderSource(id, 1, &src, nullptr));
+	GLCall(glCompileShader(id));
 
 	// Error handling for shader compilation
 	int result;
-	glGetShaderiv(id, GL_COMPILE_STATUS, &result);
+	GLCall(glGetShaderiv(id, GL_COMPILE_STATUS, &result));
 	if (result == GL_FALSE) {
 		int length;
 		// Get the length of the error message
-		glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
+		GLCall(glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length));
 		// Allocate space for the error message
 		char* message = (char*)alloca(length * sizeof(char));
 		// Retrieve the error message
-		glGetShaderInfoLog(id, length, &length, message);
+		GLCall(glGetShaderInfoLog(id, length, &length, message));
 
 		cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << endl;
 		cout << message << endl;
-		glDeleteShader(id);
+		GLCall(glDeleteShader(id));
 		return 0;
 	}
 	// Return the shader ID if compilation was successful
@@ -87,16 +84,16 @@ static unsigned int CreateShader(const string& vertexShader, const string& fragm
 	unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
 
 	//Attach the vertex and fragment shader to the program
-	glAttachShader(program, vs);
-	glAttachShader(program, fs);
+	GLCall(glAttachShader(program, vs));
+	GLCall(glAttachShader(program, fs));
 	
 	//Link the shaders into a complete program and validate the program to ensure that it's working correctly
-	glLinkProgram(program);
-	glValidateProgram(program);
+	GLCall(glLinkProgram(program));
+	GLCall(glValidateProgram(program));
 
 	//Delete the shaders to clear up space
-	glDeleteShader(vs);
-	glDeleteShader(fs);
+	GLCall(glDeleteShader(vs));
+	GLCall(glDeleteShader(fs));
 
 	// Return the created and linked shader program
 	return program;

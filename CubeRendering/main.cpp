@@ -1,10 +1,5 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <iostream>
 #include <Shader.cpp>
-#include "GenerateCube.h" // Include the header file
-
-using namespace std;
+#include <headers/GenerateCube.h> // Include the header file
 
 int main() {
     GLFWwindow* window;
@@ -24,6 +19,7 @@ int main() {
 
     // Make windowed context current
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
     if (glewInit() != GLEW_OK) {
         cout << "Could not initialize GLEW!" << endl;
@@ -35,28 +31,44 @@ int main() {
     createCubeVertices();
     createCubeIndices();
 
-
     // Load and compile shaders
     ShaderProgramSource source = ParseShader("Resources/shaders/Basic.shader");
     unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
-    glUseProgram(shader);
+    GLCall(glUseProgram(shader));
+
+    int location = glGetUniformLocation(shader, "u_Color");
+    if (location < 0) {
+        cout << "Could not get Uniform Location" << endl;
+    }
+   
+    float r = 0.0f;
+    float increment = 0.05f;
 
     // Loop until the window closes
     while (!glfwWindowShouldClose(window)) {
         // Set window background color
-        glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        GLCall(glClearColor(0.07f, 0.13f, 0.17f, 1.0f));
+        GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
         // Drawing a Cube using triangles with 36 different points
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
-        glDrawElements(GL_TRIANGLES, 12 * 3, GL_UNSIGNED_INT, nullptr);
+        GLCall(glUniform4f(location, r, 1.0f, 1.0f, 1.0f));
+        GLCall(glDrawElements(GL_TRIANGLES, 12 * 3, GL_UNSIGNED_INT, nullptr));
+
+        if (r > 1.0f) {
+            increment = -0.05f;
+        }
+        else if (r < 0) {
+            increment = 0.05f;
+        }
+
+        r += increment;
 
         // Swap buffers
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        GLCall(glfwSwapBuffers(window));
+        GLCall(glfwPollEvents());
     }
 
-    glDeleteProgram(shader);
+    GLCall(glDeleteProgram(shader));
     glfwTerminate();
     return 0;
 }
