@@ -1,190 +1,201 @@
-#include <GL\glew.h>
-#include <GLFW\glfw3.h>
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
 
-using namespace std;
-
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480
-
-void DrawCube( GLfloat centerPosX, GLfloat centerPosY, GLfloat centerPosZ, GLfloat edgeLength );
-
-GLfloat rotationX = 0.0f;
-GLfloat rotationY = 0.0f;
+#include "Renderer.h"
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
 
 
-
-int main() {
-	//Inittialize GLFW
-	glfwInit();
-
-	//window specs / create window object
-	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Cube Render", NULL, NULL);
+struct ShaderProgramSource
+{
+    std::string VertexSource;
+    std::string FragmentSource;
+};
 
 
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, 1);
 
-	int screenWidth;
-	int screenHeight;
-	glfwGetFramebufferSize(window, &screenWidth, &screenHeight);
+static ShaderProgramSource ParseShader(const std::string& filepath)
+{
+    std::ifstream stream(filepath);
 
-	if (!window) {
-		std::cout << "Faild to create Window" << std::endl;
-		glfwTerminate();
-		return -1;
-	}
+    enum class ShaderType
+    {
+        NONE = -1, VERTEX = 0, FRAGMENT = 1
+    };
 
-	//introduce window into the current context
-	glfwMakeContextCurrent(window);
-	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT, 0, 1000);
-	glMatrixMode(GL_MODELVIEW);
+    std::string line;
+    std::stringstream ss[2];
+    ShaderType type = ShaderType::NONE;
+    while (getline(stream, line))
+    {
+        if (line.find("#shader") != std::string::npos)
+        {
+            if (line.find("vertex") != std::string::npos)
+                type = ShaderType::VERTEX;
+            else if (line.find("fragment") != std::string::npos)
+                type = ShaderType::FRAGMENT;
+        }
+        else if (type == ShaderType::NONE)
+            continue;
+        else
+        {
+            ss[(int)type] << line << '\n';
+        }
+    }
 
-	GLfloat halfScreenWidth = SCREEN_WIDTH / 2;
-	GLfloat halfScreenHeight = SCREEN_HEIGHT / 2;
-
-	//Timing variable
-	double lastTime = glfwGetTime();
-
-	//run window
-	while (!glfwWindowShouldClose(window)) {
-		//calculate elapsed time
-		double currTime = glfwGetTime();
-		double deltaTime = currTime - lastTime;
-		lastTime = currTime;
-
-		//Update rotation angles
-		const GLfloat rotationSpeed = 80.0f; //degrees per second
-		rotationX += rotationSpeed * deltaTime;
-		rotationY += rotationSpeed * deltaTime * 2;
-
-
-		//Change color of the window
-		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		//Render OpenGL here:
-		glPushMatrix();
-		glTranslatef(halfScreenWidth, halfScreenHeight, -500);
-		glRotatef(rotationX, 1, 0, 0);
-		glRotatef(rotationY, 0, 1, 0);
-		glTranslatef(-halfScreenWidth, -halfScreenHeight, 500);
-
-		DrawCube(halfScreenWidth, halfScreenHeight,-500, 100);
-
-
-		glPopMatrix();
-		//Swap front and back buffers
-		glfwSwapBuffers(window);
-
-		// Poll for and proccess events
-		// Detects different proccesses and events
-		glfwPollEvents();
-	}
-
-	//terminate window on exit
-	glfwDestroyWindow(window);
-	glfwTerminate();
-
-	return 0;
+    return { ss[0].str(), ss[1].str() };
 }
 
+static unsigned int CompileShader(unsigned int type, const std::string& source)
+{
+    unsigned int id = glCreateShader(type);
+    const char* src = source.c_str();
+    glShaderSource(id, 1, &src, nullptr);
+    glCompileShader(id);
 
-void DrawCube(GLfloat centerPosX, GLfloat centerPosY, GLfloat centerPosZ, GLfloat edgeLength) {
-	GLfloat halfSideLength = edgeLength * 0.5;
+    int result;
+    glGetShaderiv(id, GL_COMPILE_STATUS, &result);
+    if (result == GL_FALSE)
+    {
+        int length;
+        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
+        char* message = (char*) alloca(length * sizeof(char));
+        glGetShaderInfoLog(id, length, &length, message);
+        std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << 
+            std::endl;
+        std::cout << message << std::endl;
+        glDeleteShader(id);
+        return 0;
+    }
 
-	GLfloat verticies[] =
-	{
-		//front face
-		centerPosX - halfSideLength, centerPosY + halfSideLength, centerPosZ + halfSideLength, //top left
-		centerPosX + halfSideLength, centerPosY + halfSideLength, centerPosZ + halfSideLength, //top right
-		centerPosX + halfSideLength, centerPosY - halfSideLength, centerPosZ + halfSideLength, //bottom right
-		centerPosX - halfSideLength, centerPosY - halfSideLength, centerPosZ + halfSideLength, //bottom left
+    return id;
+}
 
-		//back face
-		centerPosX - halfSideLength, centerPosY + halfSideLength, centerPosZ - halfSideLength, //top left
-		centerPosX + halfSideLength, centerPosY + halfSideLength, centerPosZ - halfSideLength, //top right
-		centerPosX + halfSideLength, centerPosY - halfSideLength, centerPosZ - halfSideLength, //bottom right
-		centerPosX - halfSideLength, centerPosY - halfSideLength, centerPosZ - halfSideLength, //bottom left
+static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
+{
+    unsigned int program = glCreateProgram();
+    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
+    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
 
-		//left face
-		centerPosX - halfSideLength, centerPosY + halfSideLength, centerPosZ + halfSideLength, //top left
-		centerPosX - halfSideLength, centerPosY + halfSideLength, centerPosZ - halfSideLength, //top right
-		centerPosX - halfSideLength, centerPosY - halfSideLength, centerPosZ - halfSideLength, //bottom right
-		centerPosX - halfSideLength, centerPosY - halfSideLength, centerPosZ + halfSideLength, //bottom left
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glLinkProgram(program);
+    glValidateProgram(program);
 
-		//right face
-		centerPosX + halfSideLength, centerPosY + halfSideLength, centerPosZ + halfSideLength, //top left
-		centerPosX + halfSideLength, centerPosY + halfSideLength, centerPosZ - halfSideLength, //top right
-		centerPosX + halfSideLength, centerPosY - halfSideLength, centerPosZ - halfSideLength, //bottom right
-		centerPosX + halfSideLength, centerPosY - halfSideLength, centerPosZ + halfSideLength, //bottom left
+    glDeleteShader(vs);
+    glDeleteShader(fs);
 
-		//top face
-		centerPosX - halfSideLength, centerPosY + halfSideLength, centerPosZ + halfSideLength, //top left
-		centerPosX - halfSideLength, centerPosY + halfSideLength, centerPosZ - halfSideLength, //top right
-		centerPosX + halfSideLength, centerPosY + halfSideLength, centerPosZ - halfSideLength, //bottom right
-		centerPosX + halfSideLength, centerPosY + halfSideLength, centerPosZ + halfSideLength, //bottom left
+    return program;
+}
 
-		//bottom face
-		centerPosX - halfSideLength, centerPosY - halfSideLength, centerPosZ + halfSideLength, //top left
-		centerPosX - halfSideLength, centerPosY - halfSideLength, centerPosZ - halfSideLength, //top right
-		centerPosX + halfSideLength, centerPosY - halfSideLength, centerPosZ - halfSideLength, //bottom right
-		centerPosX + halfSideLength, centerPosY - halfSideLength, centerPosZ + halfSideLength, //bottom left
-	};
+int main(void)
+{
+    GLFWwindow* window;
 
-	//Creating Color array for each side of the cube
-	GLfloat colors[] = {
-		// Front face (red)
-		1.0f, 0.0f, 0.0f, // Top left
-		1.0f, 0.0f, 0.0f, // Top right
-		1.0f, 0.0f, 0.0f, // Bottom right
-		1.0f, 0.0f, 0.0f, // Bottom left
+    /* Initialize the library */
+    if (!glfwInit())
+        return -1;
 
-		// Back face (green)
-		0.0f, 1.0f, 0.0f, // Top left
-		0.0f, 1.0f, 0.0f, // Top right
-		0.0f, 1.0f, 0.0f, // Bottom right
-		0.0f, 1.0f, 0.0f, // Bottom left
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-		// Left face (blue)
-		0.0f, 0.0f, 1.0f, // Top left
-		0.0f, 0.0f, 1.0f, // Top right
-		0.0f, 0.0f, 1.0f, // Bottom right
-		0.0f, 0.0f, 1.0f, // Bottom left
+    /* Create a windowed mode window and its OpenGL context */
+    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+    if (!window)
+    {
+        glfwTerminate();
+        return -1;
+    }
+    /* Make the window's context current */
+    glfwMakeContextCurrent(window);
 
-		// Right face (yellow)
-		1.0f, 1.0f, 0.0f, // Top left
-		1.0f, 1.0f, 0.0f, // Top right
-		1.0f, 1.0f, 0.0f, // Bottom right
-		1.0f, 1.0f, 0.0f, // Bottom left
+    glfwSwapInterval(1);
 
-		// Top face (cyan)
-		0.0f, 1.0f, 1.0f, // Top left
-		0.0f, 1.0f, 1.0f, // Top right
-		0.0f, 1.0f, 1.0f, // Bottom right
-		0.0f, 1.0f, 1.0f, // Bottom left
+    if (glewInit() != GLEW_OK)
+        std::cout << "ERROR!" << std::endl;
+    {
+        float positions[] = {
+            -0.5f, -0.5f,
+             0.5f, -0.5f,
+             0.5f,  0.5f,
+            -0.5f,  0.5f, 
+        };
 
-		// Bottom face (magenta)
-		1.0f, 0.0f, 1.0f, // Top left
-		1.0f, 0.0f, 1.0f, // Top right
-		1.0f, 0.0f, 1.0f, // Bottom right
-		1.0f, 0.0f, 1.0f, // Bottom left
-	};
+        unsigned int indices[] = {
+            0, 1, 2,
+            2, 3, 0
+        };
 
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	//Render squares
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
+        unsigned int vao;
+        GLCall(glGenVertexArrays(1, &vao));
+        GLCall(glBindVertexArray(vao));
 
-	// (xyz=3, datatype, stride/gap?, array) 
-	glVertexPointer(3, GL_FLOAT, 0, verticies);
-	glColorPointer(3, GL_FLOAT, 0, colors);
+        VertexBuffer vb(positions, 4 * 2 * sizeof(float));
+    
 
-	//(Type of shape, startingpoint, numer of points)
-	glDrawArrays(GL_QUADS, 0, 24);
+        GLCall(glEnableVertexAttribArray(0));
+        GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0));
 
-	glDisableClientState(GL_COLOR_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
-};
+        IndexBuffer ib(indices, 6);
+
+        ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
+
+
+        unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
+        glUseProgram(shader);
+
+
+        GLCall(int location = glGetUniformLocation(shader, "u_Color"));
+        ASSERT(location != -1);
+        GLCall(glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f));
+
+        GLCall(glBindVertexArray(0));
+        GLCall(glUseProgram(0));
+        GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
+        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+
+        float r = 0.0f;
+        float increment = 0.01f;
+
+        /* Loop until the user closes the window */
+        while (!glfwWindowShouldClose(window))
+        {
+            /* Render here */
+            GLCall(glClear(GL_COLOR_BUFFER_BIT));
+
+            GLCall(glUseProgram(shader));
+            GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
+
+
+            GLCall(glBindVertexArray(vao));
+            ib.Bind();
+
+
+            GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+
+            if (r > 1.0f)
+                increment = -0.01;
+            else if (r < 0.0f)
+                increment = 0.01f;
+
+            r += increment;
+
+            /* Swap front and back buffers */
+            glfwSwapBuffers(window);
+
+            /* Poll for and process events */
+            glfwPollEvents();
+        }
+
+        glDeleteProgram(shader);
+    }
+
+    glfwTerminate();
+    return 0;
+}
