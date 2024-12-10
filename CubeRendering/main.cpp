@@ -88,10 +88,7 @@ int main(void)
             va.Bind();
             ib.Bind();
 
-
-            GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
-
-        
+            renderer.Draw(va, ib, shader);
 
             /* Swap front and back buffers */
             glfwSwapBuffers(window);
