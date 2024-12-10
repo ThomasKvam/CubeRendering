@@ -142,12 +142,12 @@ int main(void)
 
         IndexBuffer ib(indices, 6);
 
-
-
         ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
+
 
         unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
         glUseProgram(shader);
+
 
         GLCall(int location = glGetUniformLocation(shader, "u_Color"));
         ASSERT(location != -1);
@@ -161,8 +161,6 @@ int main(void)
         float r = 0.0f;
         float increment = 0.01f;
 
-
-
         /* Loop until the user closes the window */
         while (!glfwWindowShouldClose(window))
         {
@@ -174,6 +172,7 @@ int main(void)
 
             va.Bind();
             ib.Bind();
+
 
             GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
 
@@ -193,7 +192,6 @@ int main(void)
 
         glDeleteProgram(shader);
     }
-
 
     glfwTerminate();
     return 0;
