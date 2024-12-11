@@ -13,6 +13,10 @@
 #include "VertexArray.h"
 #include "VertexBufferLayout.h"
 #include "Shader.h"
+#include "Texture.h"
+
+#include "vendor/glm/glm.hpp"
+#include "vendor/glm/gtc/matrix_transform.hpp"
 
 
 int main(void)
@@ -28,7 +32,7 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Cube Rendering", NULL, NULL);
+    window = glfwCreateWindow(960, 540, "Cube Rendering", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -43,10 +47,10 @@ int main(void)
         std::cout << "ERROR!" << std::endl;
     {
         float positions[] = {
-            -0.5f, -0.5f,
-             0.5f, -0.5f,
-             0.5f,  0.5f,
-            -0.5f,  0.5f, 
+            310.0f, 100.0f, 0.0f, 0.0f, //Bottom left
+            650.0f, 100.0f, 1.0f, 0.0f, //Bottom right
+            650.0f, 440.0f, 1.0f, 1.0f, //Top right
+            310.0f, 440.0f, 0.0f, 1.0f //Top left
         };
 
         unsigned int indices[] = {
@@ -54,19 +58,43 @@ int main(void)
             2, 3, 0
         };
 
+        GLCall(glEnable(GL_BLEND));
+        GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+        
         VertexArray va;
-        VertexBuffer vb(positions, 4 * 2 * sizeof(float));
+        VertexBuffer vb(positions, 4 * 4 * sizeof(float));
         
         VertexBufferLayout layout;
+        layout.Push<float>(2);
         layout.Push<float>(2);
         va.AddBuffer(vb, layout);
 
         IndexBuffer ib(indices, 6);
 
+        //Projection
+        glm::mat4 proj = glm::ortho(0.0f, 960.0f, 0.0f, 540.0f, -1.0f, 1.0f);
+        
+        /* Change the view or position of the model:
+        * 
+        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(-100.0f, 0.0f, 0.0f));
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 100.0f, 0.0f));
+        */
+
+        glm::mat4 mvp = proj; //* view * model;
+
         Shader shader("res/shaders/Basic.shader");
         shader.Bind();
 
-        shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
+        Texture texture("res/textures/Dice.png");
+
+        //Adding a background color to the square
+        //shader.SetUniform4f("u_BackgroundColor", 1.0f, 1.0f, 1.0f, 0.9f);
+
+        shader.SetUniformMat4f("u_MVP", mvp);
+
+        //Adding the png to the square
+        texture.Bind();
+        shader.SetUniform1i("u_Texture", 0);
 
         va.Unbind();
         shader.Unbind();
@@ -81,12 +109,6 @@ int main(void)
         {
             /* Render here */
             renderer.Clear();
-
-            shader.Bind();
-            shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
-
-            va.Bind();
-            ib.Bind();
 
             renderer.Draw(va, ib, shader);
 
