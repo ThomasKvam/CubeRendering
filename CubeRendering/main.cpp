@@ -15,6 +15,9 @@
 #include "Shader.h"
 #include "Texture.h"
 
+#include "vendor/glm/glm.hpp"
+#include "vendor/glm/gtc/matrix_transform.hpp"
+
 
 int main(void)
 {
@@ -29,7 +32,7 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(800, 800, "Cube Rendering", NULL, NULL);
+    window = glfwCreateWindow(1024, 768, "Cube Rendering", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -68,16 +71,22 @@ int main(void)
 
         IndexBuffer ib(indices, 6);
 
-        //
+        //Projection
+        glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
+
         Shader shader("res/shaders/Basic.shader");
         shader.Bind();
 
         Texture texture("res/textures/Dice.png");
 
-        shader.SetUniform4f("u_BackgroundColor", 1.0f, 1.0f, 1.0f, 0.9f);
+        //Adding a background color to the square
+        //shader.SetUniform4f("u_BackgroundColor", 1.0f, 1.0f, 1.0f, 0.9f);
+
+        shader.SetUniformMat4f("u_MVP", proj);
+
+        //Adding the png to the square
         texture.Bind();
         shader.SetUniform1i("u_Texture", 0);
-
 
         va.Unbind();
         shader.Unbind();
@@ -92,14 +101,6 @@ int main(void)
         {
             /* Render here */
             renderer.Clear();
-            
-            /*
-            shader.Bind();
-            shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
-
-            va.Bind();
-            ib.Bind();
-            */
 
             renderer.Draw(va, ib, shader);
 
