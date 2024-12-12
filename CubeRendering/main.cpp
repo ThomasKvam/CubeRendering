@@ -32,7 +32,7 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(960, 540, "Cube Rendering", NULL, NULL);
+    window = glfwCreateWindow(800, 800, "Cube Rendering", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -41,54 +41,74 @@ int main(void)
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
-    glfwSwapInterval(1);
-
     if (glewInit() != GLEW_OK)
         std::cout << "ERROR!" << std::endl;
     {
         float positions[] = {
-            310.0f, 100.0f, 0.0f, 0.0f, //Bottom left
-            650.0f, 100.0f, 1.0f, 0.0f, //Bottom right
-            650.0f, 440.0f, 1.0f, 1.0f, //Top right
-            310.0f, 440.0f, 0.0f, 1.0f //Top left
+            -150.0f, -150.0f, -150.0f, 0.0f, 0.0f, //Bottom left
+            150.0f, -150.0f, -150.0f, 1.0f, 0.0f, //Bottom right
+            150.0f, 150.0f, -150.0f, 1.0f, 1.0f, //Top right
+            -150.0f, 150.0f, -150.0f, 0.0f, 1.0f, //Top left
+
+            -150.0f, -150.0f, 150.0f, 0.0f, 0.0f, //Bottom left
+            150.0f, -150.0f, 150.0f, 1.0f, 0.0f, //Bottom right
+            150.0f, 150.0f, 150.0f, 1.0f, 1.0f, //Top right
+            -150.0f, 150.0f, 150.0f, 0.0f, 1.0f, //Top left
         };
 
         unsigned int indices[] = {
+            // Front face
             0, 1, 2,
-            2, 3, 0
+            2, 3, 0,
+
+            // Back face
+            4, 5, 6,
+            6, 7, 4,
+
+            // Left face
+            4, 0, 3,
+            3, 7, 4,
+
+            // Right face
+            1, 5, 6,
+            6, 2, 1,
+
+            // Top face
+            3, 2, 6,
+            6, 7, 3,
+
+            // Bottom face
+            4, 5, 1,
+            1, 0, 4
         };
 
         GLCall(glEnable(GL_BLEND));
         GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
         
         VertexArray va;
-        VertexBuffer vb(positions, 4 * 4 * sizeof(float));
+        VertexBuffer vb(positions, 8 * 5 * sizeof(float));
         
         VertexBufferLayout layout;
-        layout.Push<float>(2);
+        layout.Push<float>(3);
         layout.Push<float>(2);
         va.AddBuffer(vb, layout);
 
-        IndexBuffer ib(indices, 6);
+        IndexBuffer ib(indices, 36);
 
         //Projection
-        glm::mat4 proj = glm::ortho(0.0f, 960.0f, 0.0f, 540.0f, -1.0f, 1.0f);
-        
-        /* Change the view or position of the model:
-        * 
-        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(-100.0f, 0.0f, 0.0f));
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 100.0f, 0.0f));
-        */
+        glm::mat4 proj = glm::ortho(-400.0f, 400.0f, -400.0f, 400.0f, -400.0f, 400.0f);
 
-        glm::mat4 mvp = proj; //* view * model;
+        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+
+        glm::mat4 mvp = proj * view; // *model;
 
         Shader shader("res/shaders/Basic.shader");
         shader.Bind();
 
-        Texture texture("res/textures/Dice.png");
+        Texture texture("res/textures/blue.png");
 
         //Adding a background color to the square
-        //shader.SetUniform4f("u_BackgroundColor", 1.0f, 1.0f, 1.0f, 0.9f);
+        shader.SetUniform4f("u_BackgroundColor", 1.0f, 1.0f, 1.0f, 0.9f);
 
         shader.SetUniformMat4f("u_MVP", mvp);
 
@@ -104,9 +124,34 @@ int main(void)
 
         Renderer renderer;
 
+        float rotationX = 0.0f;
+        float rotationY = 0.0f;
+
+
         /* Loop until the user closes the window */
         while (!glfwWindowShouldClose(window))
         {
+
+            /* Calculate rotation */
+            rotationX += 0.05f; // Adjust speed here
+            if (rotationX > 100.0f) // Optional: Reset after a full rotation
+                rotationX -= 0.01f;
+            else if (rotationX < 100.0f) rotationX += 0.01f;
+
+
+            rotationY += 0.05f; // Adjust speed here
+            if (rotationY > 100.0f) // Optional: Reset after a full rotation
+                rotationY -= 0.01f;
+            else if (rotationY < 100.0f) rotationY += 0.01f;
+
+            glm::mat4 modelX = glm::rotate(glm::mat4(0.05f), glm::radians(rotationX), glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::mat4 modelY = glm::rotate(glm::mat4(0.05f), glm::radians(rotationY), glm::vec3(1.0f, 0.0f, 0.0f));
+            glm::mat4 mvp = proj * view * modelX * modelY;
+
+            shader.Bind();
+            shader.SetUniformMat4f("u_MVP", mvp);
+
+
             /* Render here */
             renderer.Clear();
 
