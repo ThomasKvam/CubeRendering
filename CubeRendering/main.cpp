@@ -47,6 +47,7 @@ int main(void)
     {
         //Defining the front and backface of the cube
         float positions[] = {
+            //(x, y, z, color, texture)
             -150.0f, -150.0f, -150.0f, 0.0f, 0.0f, //Bottom left
             150.0f, -150.0f, -150.0f, 1.0f, 0.0f, //Bottom right
             150.0f, 150.0f, -150.0f, 1.0f, 1.0f, //Top right
@@ -102,8 +103,11 @@ int main(void)
 
         IndexBuffer ib(indices, 36);
 
-        //Projection defenition (-x, x, -y, y, -z, z)
+        //Projection defenition
         glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1000.0f / 900.0f, 0.1f, 10000.0f);
+
+        //Move the cube a set pixels away from origo
+        glm::mat4 moveCube = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -400.0f));
 
         //Creating a shader and texture class based on shader file and a png
         Shader shader("res/shaders/Basic.shader");
@@ -170,7 +174,7 @@ int main(void)
             glm::mat4 view = camera.GetViewMatrix();
 
             // Final MVP matrix
-            glm::mat4 mvp = proj * view * modelX * modelY;
+            glm::mat4 mvp = proj * view * moveCube * modelX * modelY;
 
             // Pass the MVP matrix to the shader
             shader.Bind();
