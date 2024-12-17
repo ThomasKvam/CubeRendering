@@ -15,9 +15,7 @@
 #include "Shader.h"
 #include "Texture.h"
 #include "Camera.h"
-
-#include "vendor/glm/glm.hpp"
-#include "vendor/glm/gtc/matrix_transform.hpp"
+#include "Shapes.h"
 
 
 int main(void)
@@ -131,12 +129,13 @@ int main(void)
         //Initilizing the renderer class
         Renderer renderer;
 
-        Camera camera(glm::vec3(0.0f, 0.0f, -800.0f));
+        //Initilize the camera with a position
+        Camera camera(glm::vec3(0.0f, 0.0f, -1200.0f));
         float lastFrame = 0.0f;
 
-        /* Loop until the user closes the window */
         float angle = 0.0f; // Initial rotation angle
 
+        /* Loop until the user closes the window */
         while (!glfwWindowShouldClose(window))
         {
             float currentFrame = (float)glfwGetTime();
@@ -144,7 +143,7 @@ int main(void)
             lastFrame = currentFrame;
 
             // Update the rotation angle over time
-            angle += deltaTime * 60.0f; // Speed of rotation (50 degrees/sec)
+            angle -= deltaTime * 60.0f; // Speed of rotation (degrees/sec)
 
             // Process camera movement input
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -164,13 +163,14 @@ int main(void)
             renderer.Clear();
 
             // Create the model matrix for cube rotation
-            glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 1.0f, 0.0f)); // Rotate around Y-axis and X-axis
+            glm::mat4 modelX = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate around X-axis
+            glm::mat4 modelY = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f)); //and Y-axis
 
             // Get the view matrix from the camera
             glm::mat4 view = camera.GetViewMatrix();
 
             // Final MVP matrix
-            glm::mat4 mvp = proj * view * model;
+            glm::mat4 mvp = proj * view * modelX * modelY;
 
             // Pass the MVP matrix to the shader
             shader.Bind();
