@@ -39,6 +39,9 @@
     <ClCompile Include="VertexBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IndexBuffer.h">
@@ -65,12 +68,18 @@
     <ClInclude Include="VertexBufferLayout.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\textures\3dDice.png">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="res\textures\Dice.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\textures\blue.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

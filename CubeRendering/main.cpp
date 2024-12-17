@@ -14,6 +14,7 @@
 #include "VertexBufferLayout.h"
 #include "Shader.h"
 #include "Texture.h"
+#include "Camera.h"
 
 #include "vendor/glm/glm.hpp"
 #include "vendor/glm/gtc/matrix_transform.hpp"
@@ -33,7 +34,7 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(800, 800, "Cube Rendering", NULL, NULL);
+    window = glfwCreateWindow(1000, 900, "Cube Rendering", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -57,6 +58,7 @@ int main(void)
             150.0f, -150.0f, 150.0f, 1.0f, 0.0f, //Bottom right
             150.0f, 150.0f, 150.0f, 1.0f, 1.0f, //Top right
             -150.0f, 150.0f, 150.0f, 0.0f, 1.0f, //Top left
+
         };
 
         //Connecting lines between front- and backface points 
@@ -103,23 +105,23 @@ int main(void)
         IndexBuffer ib(indices, 36);
 
         //Projection defenition (-x, x, -y, y, -z, z)
-        glm::mat4 proj = glm::ortho(-400.0f, 400.0f, -400.0f, 400.0f, -400.0f, 400.0f);
+        glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1000.0f / 900.0f, 0.1f, 10000.0f);
 
-        //If you want to move the cube:
-        // glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-
-        //Binding the shader and pgn to the Cube
+        //Creating a shader and texture class based on shader file and a png
         Shader shader("res/shaders/Basic.shader");
-        shader.Bind();
         Texture texture("res/textures/blue.png");
 
-        //Adding a background color to the cube
-        shader.SetUniform4f("u_BackgroundColor", 1.0f, 1.0f, 1.0f, 0.9f);
+        //Binding the shader to the program
+        shader.Bind();
 
-        //Adding the png to the cube
-        texture.Bind();
+        //Adding a background color and texture to the cube
+        shader.SetUniform4f("u_BackgroundColor", 1.0f, 1.0f, 1.0f, 0.9f);
         shader.SetUniform1i("u_Texture", 0);
 
+        //Binding the texture to the program
+        texture.Bind();
+
+        //Unbinding to clear up allocated space
         va.Unbind();
         shader.Unbind();
 
@@ -129,50 +131,59 @@ int main(void)
         //Initilizing the renderer class
         Renderer renderer;
 
-        float rotationX = 0.0f;
-        float rotationY = 0.0f;
-
-        //Timing variable
-        double lastTime = glfwGetTime();
+        Camera camera(glm::vec3(0.0f, 0.0f, -800.0f));
+        float lastFrame = 0.0f;
 
         /* Loop until the user closes the window */
+        float angle = 0.0f; // Initial rotation angle
+
         while (!glfwWindowShouldClose(window))
         {
+            float currentFrame = (float)glfwGetTime();
+            float deltaTime = currentFrame - lastFrame; // Time between frames
+            lastFrame = currentFrame;
 
-            //calculate elapsed time
-            double currTime = glfwGetTime();
-            double deltaTime = currTime - lastTime;
-            lastTime = currTime;
+            // Update the rotation angle over time
+            angle += deltaTime * 60.0f; // Speed of rotation (50 degrees/sec)
 
-            //Update rotation angles
-            const GLfloat rotationSpeed = 40.0f; //degrees per second
-            rotationX += rotationSpeed * deltaTime;
-            rotationY += rotationSpeed * deltaTime;
+            // Process camera movement input
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+                camera.ProcessKeyboardInput(GLFW_KEY_W, deltaTime);
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+                camera.ProcessKeyboardInput(GLFW_KEY_S, deltaTime);
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+                camera.ProcessKeyboardInput(GLFW_KEY_A, deltaTime);
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+                camera.ProcessKeyboardInput(GLFW_KEY_D, deltaTime);
+            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+                camera.ProcessKeyboardInput(GLFW_KEY_SPACE, deltaTime);
+            if (glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS)
+                camera.ProcessKeyboardInput(GLFW_KEY_BACKSPACE, deltaTime);
 
+            // Clear screen
+            renderer.Clear();
 
-            //Rotate around the X and Y axis at origo
-            glm::mat4 modelX = glm::rotate(glm::mat4(1.0f), glm::radians(rotationX), glm::vec3(0.0f, 1.0f, 0.0f));
-            glm::mat4 modelY = glm::rotate(glm::mat4(1.0f), glm::radians(rotationY), glm::vec3(1.0f, 0.0f, 1.0f));
+            // Create the model matrix for cube rotation
+            glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 1.0f, 0.0f)); // Rotate around Y-axis and X-axis
 
-            //Add the roation to the projection and view
-            glm::mat4 mvp = proj * modelX * modelY;
+            // Get the view matrix from the camera
+            glm::mat4 view = camera.GetViewMatrix();
 
-            //Binding shaders continously because the cube position changes
+            // Final MVP matrix
+            glm::mat4 mvp = proj * view * model;
+
+            // Pass the MVP matrix to the shader
             shader.Bind();
             shader.SetUniformMat4f("u_MVP", mvp);
 
-            /* Render here */
-            renderer.Clear();
-
-            //Drawing the cube 
+            // Draw the cube
             renderer.Draw(va, ib, shader);
 
-            /* Swap front and back buffers */
+            // Swap buffers and poll events
             glfwSwapBuffers(window);
-
-            /* Poll for and process events */
             glfwPollEvents();
         }
+
     }
 
     glfwTerminate();
